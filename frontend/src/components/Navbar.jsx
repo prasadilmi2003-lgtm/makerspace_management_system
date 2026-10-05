@@ -37,8 +37,7 @@ export default function Navbar() {
     : solid ? 'bg-white/90 border-ink-100 backdrop-blur-xl' : 'bg-white border-transparent';
 
   const linkCls = ({ isActive }) =>
-    `relative px-1 py-2 text-[13px] font-medium transition-colors ${
-      isActive ? 'text-brand-500' : dark ? 'text-ink-200 hover:text-white' : 'text-ink-500 hover:text-ink-900'
+    `relative px-1 py-2 text-[13px] font-medium transition-colors ${isActive ? 'text-brand-500' : dark ? 'text-ink-200 hover:text-white' : 'text-ink-500 hover:text-ink-900'
     }`;
 
   return (

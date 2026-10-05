@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Icon, Reveal, SectionTitle, StatBadge } from '../components/ui';
 import { STATE_COLOR } from '../components/IsoFloor';
 import { ProjectArt, WallSign, WorkshopBackdrop } from '../components/Art';
+import Intro, { INTRO_OPEN_AT, shouldPlayIntro } from '../components/Intro';
 import { fmtRange, HOURS, PROJECTS, ZONES, ZONE_STATUS_LABEL } from '../data/mock';
 
 const STATS = [
@@ -14,7 +15,7 @@ const STATS = [
   { icon: 'Layers', value: ZONES.length, label: 'Workbench Zones' },
 ];
 
-const rise = (i = 0) => ({ initial: { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.7, delay: 0.1 + i * 0.1, ease: [0.16, 1, 0.3, 1] } });
+const rise = (i = 0, d = 0) => ({ initial: { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.7, delay: 0.1 + i * 0.1 + d, ease: [0.16, 1, 0.3, 1] } });
 
 const StatsBar = ({ dark = true }) => (
   <div className={`grid grid-cols-2 gap-x-6 gap-y-6 rounded-2xl border p-6 md:grid-cols-4 md:divide-x ${dark ? 'glass md:divide-white/10' : 'border-white/10 bg-ink-900 shadow-xl shadow-ink-900/5 md:divide-white/10'}`}>
@@ -25,32 +26,32 @@ const StatsBar = ({ dark = true }) => (
 );
 
 /* ---------- 1. Cinematic ---------- */
-const Cinematic = () => (
+const Cinematic = ({ delay = 0 }) => (
   <section className="relative isolate min-h-[100svh] overflow-hidden">
     <WorkshopBackdrop />
     <div className="relative mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-end px-5 pb-10 pt-32 md:px-8">
       <div className="grid items-center gap-10 pb-14 lg:grid-cols-[1.25fr_1fr]">
         <div>
-          <motion.div {...rise(0)} className="font-mono text-xs font-semibold uppercase tracking-[.3em] text-ink-200">University of Ruhuna - Faculty of Engineering</motion.div>
-          <motion.h1 {...rise(1)} className="h-hero mt-3 text-[clamp(3.2rem,9vw,7.5rem)] text-white"><span className="forge" role="text" aria-label="Makerspace">{[...'Makerspace'].map((ch, i) => <span key={i} className="forge-l" style={{ '--i': i }} aria-hidden="true">{ch}</span>)}</span></motion.h1>
-          <motion.div {...rise(2)} className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-1 font-display text-sm font-semibold uppercase tracking-[.25em] text-white">
+          <motion.div {...rise(0, delay)} className="font-mono text-xs font-semibold uppercase tracking-[.3em] text-ink-200">University of Ruhuna - Faculty of Engineering</motion.div>
+          <motion.h1 {...rise(1, delay)} className="h-hero mt-3 text-[clamp(3.2rem,9vw,7.5rem)] text-white"><span className="forge" role="text" aria-label="Makerspace">{[...'Makerspace'].map((ch, i) => <span key={i} className="forge-l" style={{ '--i': i, '--intro': `${delay}s` }} aria-hidden="true">{ch}</span>)}</span></motion.h1>
+          <motion.div {...rise(2, delay)} className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-1 font-display text-sm font-semibold uppercase tracking-[.25em] text-white">
             {['Ideas', 'Prototypes', 'People', 'Impact'].map((w, i) => (
               <React.Fragment key={w}>{i > 0 && <span className="text-brand-500">•</span>}<span>{w}</span></React.Fragment>
             ))}
           </motion.div>
-          <motion.p {...rise(3)} className="mt-6 max-w-lg text-[15px] leading-relaxed text-ink-200">
+          <motion.p {...rise(3, delay)} className="mt-6 max-w-lg text-[15px] leading-relaxed text-ink-200">
             A student-run fabrication lab and innovation hub. Open to all engineering students with a valid access request.
           </motion.p>
-          <motion.div {...rise(4)} className="mt-8 flex flex-wrap gap-3">
+          <motion.div {...rise(4, delay)} className="mt-8 flex flex-wrap gap-3">
             <Link to="/join" className="btn-primary">Request Access <ArrowRight size={16} /></Link>
             <Link to="/projects" className="btn-ghost-dark"><Play size={14} className="fill-white" /> View Projects</Link>
           </motion.div>
         </div>
-        <motion.div {...rise(3)} className="hidden justify-self-end lg:block">
+        <motion.div {...rise(3, delay)} className="hidden justify-self-end lg:block">
           <WallSign className="text-right text-[clamp(2.6rem,5.2vw,4.6rem)]" />
         </motion.div>
       </div>
-      <motion.div {...rise(5)}><StatsBar dark /></motion.div>
+      <motion.div {...rise(5, delay)}><StatsBar dark /></motion.div>
     </div>
   </section>
 );
@@ -176,9 +177,12 @@ const Lower = () => (
 );
 
 export default function Landing() {
+  // Opening animation: front page only, once per browser session.
+  const [intro, setIntro] = useState(shouldPlayIntro);
   return (
     <>
-      <Cinematic />
+      {intro && <Intro onDone={() => setIntro(false)} />}
+      <Cinematic delay={intro ? INTRO_OPEN_AT : 0} />
       <Lower />
     </>
   );
