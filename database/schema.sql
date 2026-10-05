@@ -122,7 +122,9 @@ CREATE POLICY "Superadmin can read audit log" ON audit_log FOR SELECT USING (
 
 -- Trigger: New Auth User -> public.users sync
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
+RETURNS trigger
+SET search_path = public
+AS $$
 BEGIN
   INSERT INTO public.users (id, full_name, student_id, email, academic_year, department, role, status)
   VALUES (
@@ -150,7 +152,9 @@ CREATE OR REPLACE FUNCTION sign_liability(
     p_signed_name TEXT,
     p_signed_student_id TEXT,
     p_ip_address TEXT
-) RETURNS void AS $$
+) RETURNS void
+SET search_path = public
+AS $$
 DECLARE
     v_user_id UUID := auth.uid();
     v_actual_name TEXT;
