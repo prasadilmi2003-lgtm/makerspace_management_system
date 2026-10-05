@@ -8,9 +8,9 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
 serve(async (req) => {
-  // Verify Webhook Secret to ensure the request came from our database webhook
+  // 1. FAIL-CLOSED WEBHOOK AUTHENTICATION
   const webhookSecret = Deno.env.get('WEBHOOK_SECRET');
-  if (webhookSecret && req.headers.get('x-webhook-secret') !== webhookSecret) {
+  if (!webhookSecret || req.headers.get('x-webhook-secret') !== webhookSecret) {
     return new Response('Unauthorized', { status: 401 });
   }
 
@@ -18,14 +18,15 @@ serve(async (req) => {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  try {
-    const payload = await req.json();
+  // 2. FIX REQUEST BODY HANDLING
+  let payload: any = null;
 
-    // The webhook sends the new/updated record in payload.record
+  try {
+    payload = await req.json();
+
     if (payload.type === 'INSERT' && payload.table === 'notification_queue') {
       const { id, recipient_email, subject, body } = payload.record;
 
-      // 1. Send Email via External Provider (e.g., Resend)
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -41,13 +42,15 @@ serve(async (req) => {
       });
 
       if (!res.ok) {
-        throw new Error(`Email provider error: ${await res.text()}`);
+        // We throw an Error to trigger the catch block. 
+        // We don't include the raw text in the error message to avoid logging it later.
+        throw new Error(`Email provider returned status: ${res.status}`);
       }
 
-      // 2. Mark as sent
+      // 3. REMOVE NON-EXISTENT processed_at COLUMN
       await supabase
         .from('notification_queue')
-        .update({ status: 'sent', processed_at: new Date().toISOString() })
+        .update({ status: 'sent' })
         .eq('id', id);
 
       return new Response(JSON.stringify({ message: 'Notification processed.' }), {
@@ -57,22 +60,24 @@ serve(async (req) => {
 
     return new Response('Ignored', { status: 200 });
   } catch (err: any) {
-    console.error('Error processing notification:', err);
+    // 5. SANITIZE ERROR LOGGING
+    console.error('Notification processing failed', {
+      errorType: err.name,
+      message: err.message
+    });
     
-    // If we have an ID from the payload but failed to send, mark as failed for potential retry
-    // In a real robust system, you might implement an exponential backoff retry cron instead.
+    // 4. REMOVE NON-EXISTENT error_log COLUMN
     try {
-      const payload = await req.clone().json();
       if (payload?.record?.id) {
          await supabase
           .from('notification_queue')
-          .update({ status: 'failed', error_log: err.message })
+          .update({ status: 'failed' })
           .eq('id', payload.record.id);
       }
     } catch(e) {
       // Ignore fallback errors
     }
 
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });
   }
 });
