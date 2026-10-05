@@ -62,3 +62,12 @@ BEGIN
     VALUES (v_admin_id, 'PENALTY_CLEARED_OVERRIDE', 'users', p_keyholder_id, jsonb_build_object('reason', p_reason));
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RLS for penalty_events
+CREATE POLICY "Users can view own penalty events" ON penalty_events
+    FOR SELECT USING (auth.uid() = keyholder_id);
+
+CREATE POLICY "Superadmins can view all penalty events" ON penalty_events
+    FOR SELECT USING (
+        (SELECT role FROM users WHERE id = auth.uid()) = 'Superadmin'
+    );

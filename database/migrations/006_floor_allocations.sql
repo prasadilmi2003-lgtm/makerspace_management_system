@@ -22,9 +22,11 @@ BEGIN
     SELECT student_id INTO v_student_id FROM requests WHERE id = p_request_id;
 
     -- Prevent overlap
+    -- Condition handles: specific bench overlap, or if either allocation is for the whole zone (bench IS NULL)
     IF EXISTS (
         SELECT 1 FROM floor_allocations
-        WHERE zone = p_zone AND (bench = p_bench OR bench IS NULL)
+        WHERE zone = p_zone 
+        AND (bench = p_bench OR bench IS NULL OR p_bench IS NULL)
         AND start_time < p_end_time AND end_time > p_start_time
     ) THEN
         RAISE EXCEPTION 'Floor allocation overlaps with an existing allocation';

@@ -4,6 +4,12 @@
 CREATE POLICY "Anyone can view inventory" ON inventory_items
     FOR SELECT USING (true);
 
+-- RLS for Inventory Events
+CREATE POLICY "Keyholders and Admins can view inventory events" ON inventory_events
+    FOR SELECT USING (
+        (SELECT role FROM users WHERE id = auth.uid()) IN ('Keyholder', 'Superadmin')
+    );
+
 -- RPC for Checking Out Inventory
 CREATE OR REPLACE FUNCTION checkout_inventory(p_item_id UUID, p_request_id UUID, p_quantity INTEGER)
 RETURNS void
@@ -14,6 +20,10 @@ DECLARE
     v_role user_role;
     v_current_qty INTEGER;
 BEGIN
+    IF p_quantity <= 0 THEN
+        RAISE EXCEPTION 'Quantity must be positive';
+    END IF;
+
     SELECT role INTO v_role FROM users WHERE id = v_user_id;
     IF v_role NOT IN ('Keyholder', 'Superadmin') THEN
         RAISE EXCEPTION 'Not authorized';
@@ -46,6 +56,10 @@ DECLARE
     v_user_id UUID := auth.uid();
     v_role user_role;
 BEGIN
+    IF p_quantity <= 0 THEN
+        RAISE EXCEPTION 'Quantity must be positive';
+    END IF;
+
     SELECT role INTO v_role FROM users WHERE id = v_user_id;
     IF v_role NOT IN ('Keyholder', 'Superadmin') THEN
         RAISE EXCEPTION 'Not authorized';

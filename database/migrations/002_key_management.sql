@@ -90,3 +90,9 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RLS for key_handoffs
+CREATE POLICY "Keyholders and Admins can view key handoffs" ON key_handoffs
+    FOR SELECT USING (
+        (SELECT role FROM users WHERE id = auth.uid()) IN ('Keyholder', 'Superadmin')
+    );
