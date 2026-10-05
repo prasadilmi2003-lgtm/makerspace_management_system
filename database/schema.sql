@@ -87,6 +87,34 @@ CREATE TABLE audit_log (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()) NOT NULL
 );
 
+CREATE TABLE inventory_items (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    category TEXT,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    condition TEXT NOT NULL DEFAULT 'Good',
+    status TEXT NOT NULL DEFAULT 'Available',
+    last_checked TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()) NOT NULL
+);
+
+CREATE TABLE inventory_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    item_id UUID NOT NULL REFERENCES inventory_items(id) ON DELETE CASCADE,
+    request_id UUID REFERENCES requests(id) ON DELETE SET NULL,
+    event_type TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()) NOT NULL
+);
+
+CREATE TABLE floor_allocations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    request_id UUID NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    zone TEXT NOT NULL,
+    bench TEXT,
+    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_time TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
 -- 4. Enable RLS
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE procedure_versions ENABLE ROW LEVEL SECURITY;
@@ -95,6 +123,9 @@ ALTER TABLE requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE key_handoffs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE penalty_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE floor_allocations ENABLE ROW LEVEL SECURITY;
 
 -- 5. RLS Policies
 
