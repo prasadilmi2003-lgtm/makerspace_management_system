@@ -819,4 +819,18 @@ FOR EACH ROW EXECUTE PROCEDURE prevent_audit_log_modification();
  C R E A T E   T R I G G E R   q u e u e _ n e w _ r e q u e s t _ n o t i f i c a t i o n  
  A F T E R   I N S E R T   O N   r e q u e s t s  
  F O R   E A C H   R O W   E X E C U T E   P R O C E D U R E   n o t i f y _ k e y h o l d e r s _ o n _ r e q u e s t ( ) ;  
+  
+ - -   0 0 9 _ r o l e _ g r a n t s . s q l  
+  
+ - -   T h e   S u p a b a s e   A P I   r e l i e s   o n   t h e   ' a n o n '   a n d   ' a u t h e n t i c a t e d '   r o l e s   h a v i n g  
+ - -   b a s e   C R U D   p r i v i l e g e s   o n   t h e   t a b l e s .   R L S   p o l i c i e s   t h e n   f i l t e r   t h e   r o w s .  
+ - -   W i t h o u t   t h e s e   g r a n t s ,   t h e   P o s t g R E S T   A P I   t h r o w s   4 2 5 0 1   P e r m i s s i o n   D e n i e d .  
+  
+ G R A N T   U S A G E   O N   S C H E M A   p u b l i c   T O   a n o n ,   a u t h e n t i c a t e d ;  
+  
+ - -   G r a n t   a c c e s s   t o   a l l   c u r r e n t   t a b l e s  
+ G R A N T   S E L E C T ,   I N S E R T ,   U P D A T E ,   D E L E T E   O N   A L L   T A B L E S   I N   S C H E M A   p u b l i c   T O   a n o n ,   a u t h e n t i c a t e d ;  
+  
+ - -   E n s u r e   f u t u r e   t a b l e s   g e t   t h e   s a m e   g r a n t s   a u t o m a t i c a l l y  
+ A L T E R   D E F A U L T   P R I V I L E G E S   I N   S C H E M A   p u b l i c   G R A N T   S E L E C T ,   I N S E R T ,   U P D A T E ,   D E L E T E   O N   T A B L E S   T O   a n o n ,   a u t h e n t i c a t e d ;  
  
