@@ -130,3 +130,32 @@ supabase.channel('dashboard_updates')
   })
   .subscribe();
 ```
+
+
+### 7. Projects Repository
+```javascript
+// Create a new project documentation entry
+await supabase.from('projects').insert([{
+  owner_id: user.id,
+  title: 'My Project',
+  description: 'Project details',
+  materials_used: ['Wood', 'Acrylic'],
+  image_urls: ['storage/url1.png']
+}]);
+
+// Update a project (Owner or Superadmin)
+await supabase.from('projects').update({
+  description: 'Updated details'
+}).eq('id', 'uuid');
+```
+
+## Error Handling
+The backend uses standard PostgreSQL exceptions and RLS blocks. 
+- **42501 Permission Denied**: The user lacks role permissions (RLS blocked them). Ensure they have signed the liability agreement and have the correct role.
+- **P0001 Raise Exception**: A business logic rule was violated (e.g., trying to return a key for a request that isn't Active). Display `error.message` directly to the user.
+
+## Notifications
+The backend automatically queues email notifications via the `notification_queue` table (e.g., when a request is created).
+- Frontend does not need to send emails manually.
+- Frontend does not need to poll the queue.
+- Ensure the Supabase Edge Function `process-notifications` is deployed to handle the actual delivery.
