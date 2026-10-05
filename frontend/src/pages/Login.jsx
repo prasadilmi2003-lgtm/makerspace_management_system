@@ -42,7 +42,7 @@ export default function Login({ onToast }) {
     <div className="relative isolate grid min-h-screen place-items-center overflow-hidden px-5 pb-12 pt-24">
       <WorkshopBackdrop />
       <div className="card animate-rise relative w-full max-w-md p-8">
-        <div className="eyebrow">University of Ruhuna</div>
+        <div className="eyebrow">University of Ruhuna-Faculty of Engineering</div>
         <h1 className="mt-2 font-display text-2xl font-bold text-white">Sign in to Makerspace</h1>
         <p className="mt-1 text-sm text-ink-300">Access requests, sessions and your project history.</p>
 

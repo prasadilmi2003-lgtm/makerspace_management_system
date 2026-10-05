@@ -51,7 +51,7 @@ const AppContent = () => {
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Landing />} />
           <Route path="/projects" element={<ProjectRepository />} />
-          <Route path="/facility" element={<Facility />} />
+          <Route path="/facility" element={<Facility onToast={showToast} />} />
           <Route path="/guidelines" element={<LiabilityAgreement readOnly onToast={showToast} />} />
           <Route path="/join" element={<Register onToast={showToast} />} />
           <Route path="/register" element={<Navigate to="/join" replace />} />

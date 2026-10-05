@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, Plus, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AppShell, { StatTile } from '../components/AppShell';
@@ -35,10 +35,17 @@ const Stepper = ({ stage }) => {
 export default function Dashboard({ onToast }) {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState('overview');
+  const [params] = useSearchParams();
+  const preZone = ZONES.find((z) => z.id === params.get('zone'));
+  const preBench = /^[A-H][1-4]$/.test(params.get('bench') || '') ? params.get('bench') : null;
+  const [tab, setTab] = useState(preZone ? 'new' : 'overview');
   const [reqs, setReqs] = useState(MY_REQUESTS_SEED);
   const [q, setQ] = useState('');
-  const [form, setForm] = useState({ title: '', description: '', date: '', duration: '3 hours', zone: ZONES[0].name });
+  const [form, setForm] = useState({
+    title: preZone ? `${preBench ? `Bench ${preBench} — ` : ''}${preZone.short} session` : '',
+    description: preBench ? `Requesting workbench ${preBench} in ${preZone.name}.` : '',
+    date: '', duration: '3 hours', zone: (preZone || ZONES[0]).name,
+  });
   const [err, setErr] = useState('');
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
 
