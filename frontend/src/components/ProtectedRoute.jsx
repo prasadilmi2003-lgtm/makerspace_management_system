@@ -2,35 +2,22 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = ({ allowedRoles = [], requiredStatus = null }) => {
-  const { user, profile, loading } = useAuth();
+const HOME = { Pending: '/onboarding/sign', User: '/dashboard', Alumni: '/dashboard', Keyholder: '/keyholder', Superadmin: '/admin' };
+
+/**
+ * Gate a route group. Works for both real Supabase sessions and the demo-role switcher
+ * because both end up as `profile`.
+ */
+export default function ProtectedRoute({ allowedRoles }) {
+  const { profile, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="grid min-h-screen place-items-center bg-ink-950 text-sm text-ink-300">Loading session…</div>;
   }
-
-  if (!user || !profile) {
-    return <Navigate to="/login" replace />;
+  if (!profile) return <Navigate to="/login" replace />;
+  if (profile.status === 'Pending_Signature') return <Navigate to="/onboarding/sign" replace />;
+  if (allowedRoles && !allowedRoles.includes(profile.role)) {
+    return <Navigate to={HOME[profile.role] || '/'} replace />;
   }
-
-  // Check status
-  if (requiredStatus && profile.status !== requiredStatus) {
-    // If they need to sign liability but aren't on that page
-    if (profile.status === 'Pending_Signature' || profile.status === 'Requires_Reagreement') {
-      return <Navigate to="/onboarding/sign" replace />;
-    }
-    // If they need to be active but are pending
-    if (requiredStatus === 'Active' && profile.status !== 'Active') {
-       return <Navigate to="/onboarding/sign" replace />;
-    }
-  }
-
-  // Check roles
-  if (allowedRoles.length > 0 && !allowedRoles.includes(profile.role)) {
-    return <Navigate to="/dashboard" replace />; // or an unauthorized page
-  }
-
   return <Outlet />;
-};
-
-export default ProtectedRoute;
+}
