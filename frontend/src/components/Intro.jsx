@@ -2,19 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Gear } from './Art';
 
-const KEY = 'mk-intro-seen';
 export const INTRO_OPEN_AT = 1.7; // seconds until the shutters start opening (hero entrance is delayed by this)
 
-/** Play once per browser session, never for reduced-motion users. Visit /?intro to replay it on demand. */
-export const shouldPlayIntro = () => {
-  try {
-    if (new URLSearchParams(window.location.search).has('intro')) return true; // /?intro replays it on demand
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
-    return !sessionStorage.getItem(KEY);
-  } catch {
-    return false;
-  }
-};
+// Module-level flag: the intro plays on every fresh page load of the front page, but not again when the
+// visitor navigates around the app and comes back to Home. (A full refresh resets it.)
+let played = false;
+export const shouldPlayIntro = () => !played || new URLSearchParams(window.location.search).has('intro'); // /?intro always replays
 
 /**
  * Front-page opening: logo draws itself, progress counts to 100, then two shutters part to reveal the hero.
@@ -28,7 +21,7 @@ export default function Intro({ onDone }) {
   const finish = () => {
     if (done.current) return;
     done.current = true;
-    try { sessionStorage.setItem(KEY, '1'); } catch { /* storage unavailable: intro simply replays next visit */ }
+    played = true;
     onDone();
   };
 

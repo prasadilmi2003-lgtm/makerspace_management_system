@@ -29,4 +29,9 @@ dist-ssr
 !.env.example
 supabase/.temp/
 
-supabase/.temp/
+# Supabase (migrations are generated from backend/database/ by backend/scripts/sync-migrations.mjs)
+backend/supabase/migrations/
+backend/supabase/seed.sql
+backend/supabase/.temp/
+backend/supabase/.branches/
+backend/supabase/.env.local

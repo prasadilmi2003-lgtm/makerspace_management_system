@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Icon, Reveal, SectionTitle, StatBadge } from '../components/ui';
 import { STATE_COLOR } from '../components/IsoFloor';
 import { ProjectArt, WallSign, WorkshopBackdrop } from '../components/Art';
+import { useAuth } from '../context/AuthContext';
 import Intro, { INTRO_OPEN_AT, shouldPlayIntro } from '../components/Intro';
 import { fmtRange, HOURS, PROJECTS, ZONES, ZONE_STATUS_LABEL } from '../data/mock';
 
@@ -26,7 +27,7 @@ const StatsBar = ({ dark = true }) => (
 );
 
 /* ---------- 1. Cinematic ---------- */
-const Cinematic = ({ delay = 0 }) => (
+const Cinematic = ({ delay = 0, signedIn = false }) => (
   <section className="relative isolate min-h-[100svh] overflow-hidden">
     <WorkshopBackdrop />
     <div className="relative mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-end px-5 pb-10 pt-32 md:px-8">
@@ -43,7 +44,7 @@ const Cinematic = ({ delay = 0 }) => (
             A student-run fabrication lab and innovation hub. Open to all engineering students with a valid access request.
           </motion.p>
           <motion.div {...rise(4, delay)} className="mt-8 flex flex-wrap gap-3">
-            <Link to="/join" className="btn-primary">Request Access <ArrowRight size={16} /></Link>
+            {!signedIn && <Link to="/join" className="btn-primary">Request Access <ArrowRight size={16} /></Link>}
             <Link to="/projects" className="btn-ghost-dark"><Play size={14} className="fill-white" /> View Projects</Link>
           </motion.div>
         </div>
@@ -93,7 +94,7 @@ const STEPS = [
   { icon: 'Hammer', title: 'Build', text: 'Use the zones, machines and mentors. Return the key, log the outcome.' },
 ];
 
-const Lower = () => (
+const Lower = ({ signedIn = false }) => (
   <>
     <section className="py-20 md:py-24">
       <div className="mx-auto max-w-7xl px-5 md:px-8">
@@ -168,7 +169,7 @@ const Lower = () => (
         <h2 className="h-hero text-4xl text-white md:text-6xl">Make something <span className="text-brand-500">real</span></h2>
         <p className="mx-auto mt-5 max-w-lg text-ink-200">Your next prototype is one agreement and one request away.</p>
         <div className="mt-8 flex justify-center gap-3">
-          <Link to="/join" className="btn-primary">Join Makerspace <ArrowRight size={16} /></Link>
+          {!signedIn && <Link to="/join" className="btn-primary">Join Makerspace <ArrowRight size={16} /></Link>}
           <Link to="/guidelines" className="btn-ghost-dark">Read the guidelines</Link>
         </div>
       </Reveal>
@@ -177,13 +178,14 @@ const Lower = () => (
 );
 
 export default function Landing() {
+  const { profile } = useAuth();
   // Opening animation: front page only, once per browser session.
   const [intro, setIntro] = useState(shouldPlayIntro);
   return (
     <>
       {intro && <Intro onDone={() => setIntro(false)} />}
-      <Cinematic delay={intro ? INTRO_OPEN_AT : 0} />
-      <Lower />
+      <Cinematic delay={intro ? INTRO_OPEN_AT : 0} signedIn={!!profile} />
+      <Lower signedIn={!!profile} />
     </>
   );
 }

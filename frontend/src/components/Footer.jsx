@@ -2,8 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, MapPin, Clock } from 'lucide-react';
 import { Logo } from './ui';
+import { useAuth } from '../context/AuthContext';
 
 export default function Footer() {
+  const { profile } = useAuth();
   return (
     <footer id="contact" className="border-t border-white/10 bg-ink-950/70 text-ink-300 backdrop-blur-sm">
       <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 md:grid-cols-[1.4fr_1fr_1fr_1.2fr] md:px-8">
@@ -19,7 +21,7 @@ export default function Footer() {
             <li><Link to="/projects" className="hover:text-brand-400">Project Repository</Link></li>
             <li><Link to="/facility" className="hover:text-brand-400">Facility Floor Plan</Link></li>
             <li><Link to="/guidelines" className="hover:text-brand-400">Operational Guidelines</Link></li>
-            <li><Link to="/join" className="hover:text-brand-400">Join the Community</Link></li>
+            {!profile && <li><Link to="/join" className="hover:text-brand-400">Join the Community</Link></li>}
           </ul>
         </div>
         <div>

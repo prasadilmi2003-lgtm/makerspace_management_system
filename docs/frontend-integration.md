@@ -206,6 +206,16 @@ await supabase.rpc('bulk_role_reset', { p_user_ids: ['uuid1'], p_new_role: 'User
 
 ---
 
+## 10. Added for the UI (migration 011)
+
+- `requests.preferred_zone` / `requests.preferred_bench`: the zone id (`a`–`h`) and bench label (`A1`…) a student asks for; pass them on insert.
+- `report_inventory_issue` accepts `'Good'` (alias of `'Normal'`) so a flag can be cleared.
+- `run_overdue_check()`: Keyholder/Superadmin wrapper around `check_overdue_requests()`; the Keyholder dashboard calls it on load so overdue keys are detected without a cron job.
+- `users` is no longer readable by anonymous visitors. Members see themselves and staff; staff see everyone.
+- Superadmins can read all `procedure_versions` and `liability_signatures` (admin panel).
+- `claim_request`, `retrieve_key`, `return_key` raise `Request not found` for unknown ids and require an officer name for key handoffs.
+- Calls the UI makes: `requests` select with `student:users!student_id(...)`/`keeper:users!assigned_keyholder_id(...)` embeds, `claim_request`, `retrieve_key`, `return_key`, `report_inventory_issue`, `bulk_role_reset`, `override_penalty`, `publish_procedure_version`, `sign_liability`, and Realtime on `requests`, `inventory_items`, `penalty_events`.
+
 ## 9. Error Handling Guide
 
 When making requests, you may encounter the following error classes:

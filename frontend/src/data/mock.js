@@ -74,8 +74,8 @@ export const MY_REQUESTS_SEED = [
 ];
 
 export const STAGES = ['pending', 'claimed', 'key_retrieved', 'active', 'completed'];
-export const STAGE_LABEL = { pending: 'Pending', claimed: 'Claimed', key_retrieved: 'Key Out', active: 'Active', completed: 'Completed' };
-export const STAGE_CHIP = { pending: 'chip-warn', claimed: 'chip-info', key_retrieved: 'chip-info', active: 'chip-ok', completed: 'chip-mute' };
+export const STAGE_LABEL = { pending: 'Pending', claimed: 'Claimed', key_retrieved: 'Key Out', active: 'Active', completed: 'Completed', cancelled: 'Cancelled' };
+export const STAGE_CHIP = { pending: 'chip-warn', claimed: 'chip-info', key_retrieved: 'chip-info', active: 'chip-ok', completed: 'chip-mute', cancelled: 'chip-bad' };
 
 export const DURATIONS = ['1 hour', '2 hours', '3 hours', '4 hours', 'Half day', 'Full day'];
 

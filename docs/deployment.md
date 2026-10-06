@@ -89,5 +89,5 @@ These are safe to embed in the frontend build. They do **not** bypass RLS.
 ## 7. Production Checks
 Before announcing a release:
 1. Verify the PostgREST cache is not stale (`NOTIFY pgrst, 'reload schema';` in SQL editor).
-2. Run `node scripts/backend_diagnostics.js` locally against the production URL to verify connectivity and cache freshness.
+2. From `backend/`, run `node scripts/backend_diagnostics.js` against the production URL to verify connectivity and cache freshness.
 3. Ensure Auth rate limits (e.g., 3 emails/hour) are configured appropriately for the expected university user load.

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../services/supabase';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { supabase, supabaseConfigured } from '../services/supabase';
 
 const AuthContext = createContext({});
 
@@ -55,9 +55,36 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
   const [demoRole, setDemoRole] = useState('public'); // 'public' | 'pending' | 'user' | 'keyholder' | 'kh_penalty' | 'admin'
+  const loadedFor = useRef(null); // user id whose profile is already in state
+  const inFlight = useRef(null);  // { id, promise } for the profile request currently running (shared by all callers)
+
+  /**
+   * Load the signed-in user's row from public.users.
+   * quiet = background refresh: never flips the app into a loading state (that would remount the current page).
+   */
+  const fetchProfile = (userId, { quiet = false } = {}) => {
+    if (inFlight.current?.id === userId) return inFlight.current.promise; // de-dupe getSession + INITIAL_SESSION + login()
+    const promise = loadProfile(userId, quiet);
+    inFlight.current = { id: userId, promise };
+    return promise;
+  };
+
+  const loadProfile = async (userId, quiet) => {
+    if (!quiet) setProfileLoading(true);
+    try {
+      const { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
+      if (error) throw error;
+      if (data) { setProfile(data); loadedFor.current = userId; }
+    } catch (error) {
+      console.warn('Profile fetch error:', error.message);
+    } finally {
+      inFlight.current = null;
+      setLoading(false);
+      setProfileLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Attempt Supabase session initialization
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
@@ -71,10 +98,11 @@ export const AuthProvider = ({ children }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser(session.user);
-        setProfileLoading(true);
-        fetchProfile(session.user.id);
+        // Same user again (tab refocus, token refresh): keep identities stable and do NOT reload anything.
+        setUser((u) => (u?.id === session.user.id ? u : session.user));
+        if (loadedFor.current !== session.user.id) fetchProfile(session.user.id);
       } else {
+        loadedFor.current = null;
         setUser(null);
         setProfile(null);
         setLoading(false);
@@ -82,25 +110,8 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const fetchProfile = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-      if (data) setProfile(data);
-    } catch (error) {
-      console.warn('Profile fetch error, defaulting to demo profile:', error.message);
-    } finally {
-      setLoading(false);
-      setProfileLoading(false);
-    }
-  };
 
   const setDemoMode = (roleKey) => {
     setDemoRole(roleKey);
@@ -115,7 +126,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    return supabase.auth.signInWithPassword({ email, password });
+    const res = await supabase.auth.signInWithPassword({ email, password });
+    if (res.data?.user) {
+      // Wait for the profile so the page we navigate to next already knows the user's role (no bounce back to /login).
+      setUser((u) => (u?.id === res.data.user.id ? u : res.data.user));
+      await fetchProfile(res.data.user.id);
+    }
+    return res;
   };
 
   const register = async (email, password, metadata) => {
@@ -133,11 +150,13 @@ export const AuthProvider = ({ children }) => {
 
   const refreshProfile = async () => {
     if (user && !user.id.startsWith('usr-')) {
-      await fetchProfile(user.id);
+      await fetchProfile(user.id, { quiet: true });
     }
   };
 
   const currentProfile = profile || MOCK_PROFILES[demoRole];
+  // True when a real Supabase session is driving the app (as opposed to the demo-role preview).
+  const live = supabaseConfigured && demoRole === 'public' && !!profile && !String(profile.id).startsWith('usr-');
   const activeRole = demoRole !== 'public' ? demoRole : (currentProfile?.role?.toLowerCase() || 'public');
 
   return (
@@ -147,8 +166,9 @@ export const AuthProvider = ({ children }) => {
         profile: currentProfile,
         demoRole,
         activeRole,
+        live,
         setDemoMode,
-        loading: loading || profileLoading,
+        loading: loading || (profileLoading && !profile),
         login,
         register,
         logout,

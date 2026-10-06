@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowserRouter as Router, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ApiProvider } from './context/ApiContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { AmbientBackdrop } from './components/Art';
 import Toast from './components/Toast';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute, { RoleHome } from './components/ProtectedRoute';
 
 import Landing from './pages/PublicShowcase';
 import ProjectRepository from './pages/ProjectRepository';
@@ -56,6 +57,7 @@ const AppContent = () => {
           <Route path="/join" element={<Register onToast={showToast} />} />
           <Route path="/register" element={<Navigate to="/join" replace />} />
           <Route path="/login" element={<Login onToast={showToast} />} />
+          <Route path="/account" element={<RoleHome />} />
           <Route path="/onboarding/sign" element={<LiabilityAgreement onToast={showToast} />} />
         </Route>
 
@@ -80,9 +82,11 @@ const AppContent = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <ApiProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </ApiProvider>
     </AuthProvider>
   );
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { supabaseConfigured } from '../services/supabase';
 
 const ROLE_HOME = {
   public: '/',
@@ -9,7 +10,7 @@ const ROLE_HOME = {
   user: '/dashboard',
   keyholder: '/keyholder',
   kh_penalty: '/keyholder',
-  admin: '/admin',
+  admin: '/keyholder',
 };
 
 const OPTIONS = [
@@ -30,6 +31,9 @@ export default function DemoSwitcher({ dark = true }) {
     setDemoMode(e.target.value);
     navigate(ROLE_HOME[e.target.value] || '/');
   };
+
+  // With a real backend configured there is nothing to preview: roles come from the signed-in account.
+  if (supabaseConfigured) return null;
 
   return (
     <label

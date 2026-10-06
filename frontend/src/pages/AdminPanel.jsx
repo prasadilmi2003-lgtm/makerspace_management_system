@@ -1,30 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Send } from 'lucide-react';
+import { Loader2, RefreshCw, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useApi, useQuery } from '../context/ApiContext';
 import AppShell, { StatTile } from '../components/AppShell';
 import { Avatar, Empty, initialsOf } from '../components/ui';
-import { downloadCsv, PROCEDURE_SEED } from '../data/mock';
-
-const SEED_USERS = [
-  ['Shaminda Perera', 'EG/2022/5311', 'User', 'Active', 'v2.4'], ['Kasun Jayawardena', 'EG/2021/2201', 'Keyholder', 'Active', 'v2.4'],
-  ['Nadeesha Fernando', 'EG/2021/3892', 'User', 'Active', 'v2.4'], ['Tharaka Dissanayake', 'EG/2023/1047', 'User', 'Active', 'v2.4'],
-  ['Ruwan Wijesekara', 'EG/2022/4410', 'Keyholder', 'Penalty', 'v2.4'], ['Sachini Senanayake', 'EG/2022/5500', 'Keyholder', 'Active', 'v2.4'],
-  ['Pradeep Kumara', 'EG/2020/1130', 'Alumni', 'Alumni', 'v2.3'], ['Imesha Rathnayake', 'EG/2023/2267', 'Pending', 'Pending', '—'],
-  ['Chamal Bandara', 'EG/2021/4480', 'Keyholder', 'Active', 'v2.4'], ['Dilini Wickramasinghe', 'EG/2022/6134', 'User', 'Active', 'v2.4'],
-].map(([name, id, role, status, sig]) => ({ name, id, role, status, sig }));
-
-const SEED_AUDIT = [
-  ['2026-06-12 15:47:02', 'KEY_RETURNED', 'Kasun Jayawardena', 'requests/a3f…', 'Officer: Sgt. Pathirana · Session closed'],
-  ['2026-06-12 14:23:11', 'REQUEST_SUBMITTED', 'Shaminda Perera', 'requests/c7b…', 'PCB Etching — MPPT Controller Rev 2'],
-  ['2026-06-12 13:55:30', 'PENALTY_TRIGGERED', 'System', 'users/kh-007', 'Overdue by 2h 14m · Claiming suspended'],
-  ['2026-06-12 13:00:00', 'KEY_RETRIEVED', 'Kasun Jayawardena', 'requests/a3f…', 'Officer: Sgt. Ranasinghe · Student notified'],
-  ['2026-06-12 12:58:04', 'REQUEST_CLAIMED', 'Kasun Jayawardena', 'requests/a3f…', 'Chassis Welding Session 3 · 7 others notified'],
-  ['2026-06-12 11:30:21', 'SIGNATURE_CAPTURED', 'Tharaka Dissanayake', 'liability_sigs/s9d…', 'Procedure v2.4 · IP: 192.168.1.84'],
-  ['2026-06-11 09:15:00', 'ROLE_CHANGED', 'Superadmin', 'users/kh-008', 'Pending → Keyholder (Year assignment)'],
-  ['2026-06-10 16:44:55', 'PROCEDURE_PUBLISHED', 'Superadmin', 'procedures/v2.4', 'Re-agreement triggered for 142 active users'],
-  ['2026-06-09 17:00:00', 'PENALTY_CLEARED', 'Superadmin', 'users/kh-003', 'Manual override · Key returned but system offline'],
-].map(([ts, event, actor, entity, detail]) => ({ ts, event, actor, entity, detail }));
+import FloorExplorer from '../components/FloorExplorer';
+import { downloadCsv } from '../data/mock';
 
 const ROLES = ['User', 'Keyholder', 'Alumni', 'Superadmin', 'Pending'];
 const EVENT_CHIP = (e) => (/PENALTY_TRIGGERED/.test(e) ? 'chip-bad' : /PENALTY|ROLE|PROCEDURE/.test(e) ? 'chip-warn' : /RETURN|SIGNATURE/.test(e) ? 'chip-ok' : 'chip-info');
@@ -102,71 +84,86 @@ const Donut = () => {
 
 export default function AdminPanel({ onToast }) {
   const { profile } = useAuth();
+  const api = useApi();
   const navigate = useNavigate();
   const [tab, setTab] = useState('analytics');
-  const [users, setUsers] = useState(SEED_USERS);
-  const [audit, setAudit] = useState(SEED_AUDIT);
   const [q, setQ] = useState('');
   const [roleF, setRoleF] = useState('All');
   const [ver, setVer] = useState('');
   const [summary, setSummary] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
-  const [procs, setProcs] = useState(PROCEDURE_SEED);
+  const [clearing, setClearing] = useState(null);
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const { data, loading, error, reload } = useQuery(async (a) => {
+    const [users, audit, procs, stats] = await Promise.all([a.listUsers(), a.listAudit(), a.listProcedures(), a.adminStats()]);
+    return { users, audit, procs, stats };
+  }, 'admin');
+  const users = data?.users || [];
+  const audit = data?.audit || [];
+  const procs = data?.procs || [];
+  const stats = data?.stats;
 
   const nav = [
     { id: 'analytics', label: 'Analytics', icon: 'ChartColumn', section: 'Administration' },
     { id: 'users', label: 'User Management', icon: 'Users' },
     { id: 'audit', label: 'Audit Logs', icon: 'ScrollText' },
     { id: 'procedures', label: 'Procedures', icon: 'FileText' },
+    { id: 'floor', label: 'Floor Plan', icon: 'Map' },
     { id: '/keyholder', label: 'Keyholder Ops', icon: 'KeyRound', section: 'Shortcuts' },
-    { id: '/facility', label: 'Floor Plan', icon: 'Map' },
   ];
   const onNav = (id) => (id.startsWith('/') ? navigate(id) : setTab(id));
-  const log = (event, entity, detail) => setAudit((a) => [{ ts: new Date().toISOString().replace('T', ' ').slice(0, 19), event, actor: 'Superadmin', entity, detail }, ...a]);
+  const warn = (e) => onToast?.('warn', e.message);
 
-  const shownUsers = useMemo(() => users.filter((u) => (roleF === 'All' || u.role === roleF) && `${u.name} ${u.id}`.toLowerCase().includes(q.toLowerCase())), [users, q, roleF]);
+  const shownUsers = useMemo(() => users.filter((u) => (roleF === 'All' || u.role === roleF) && `${u.name} ${u.sid}`.toLowerCase().includes(q.toLowerCase())), [users, q, roleF]);
   const shownAudit = audit.filter((a) => `${a.event} ${a.actor} ${a.detail}`.toLowerCase().includes(q.toLowerCase()));
 
-  const changeRole = (name, role) => {
-    setUsers((l) => l.map((u) => (u.name === name ? { ...u, role } : u)));
-    log('ROLE_CHANGED', `users/${name.split(' ')[0].toLowerCase()}`, `Role set to ${role}`);
-    onToast?.('ok', `${name} is now ${role}. Audit entry written.`);
-  };
   const exportUsers = () => {
-    downloadCsv('makerspace-users.csv', [['Name', 'Student ID', 'Role', 'Status', 'Signed Version'], ...users.map((u) => [u.name, u.id, u.role, u.status, u.sig])]);
+    downloadCsv('makerspace-users.csv', [['Name', 'Student ID', 'Email', 'Role', 'Status', 'Signed Version'], ...users.map((u) => [u.name, u.sid, u.email, u.role, u.status, u.sig])]);
     onToast?.('ok', 'CSV export ready.');
   };
-  const bulkReset = () => {
-    setUsers((l) => l.map((u) => (u.role === 'Keyholder' ? { ...u, role: 'User' } : u)));
-    log('BULK_YEAR_RESET', 'users/*', 'All Keyholder assignments reset for the new academic year');
-    setConfirmReset(false);
-    onToast?.('ok', 'Keyholder assignments reset for the new academic year.');
+  const changeRole = async (u, role) => {
+    try { await api.setRole(u.id, role); onToast?.('ok', `${u.name} is now ${role}. Audit entry written.`); await reload(); } catch (e) { warn(e); await reload(); }
   };
-  const publish = (e) => {
+  const bulkReset = async () => {
+    setBusy(true);
+    try { const n = await api.resetKeyholders(); onToast?.('ok', `${n} Keyholder assignment${n === 1 ? '' : 's'} reset for the new academic year.`); setConfirmReset(false); await reload(); } catch (e) { warn(e); } finally { setBusy(false); }
+  };
+  const clearPenalty = async (e) => {
+    e.preventDefault();
+    if (!reason.trim()) return onToast?.('warn', 'A reason is mandatory for a penalty override.');
+    setBusy(true);
+    try { await api.overridePenalty(clearing.id, reason.trim()); onToast?.('ok', `Penalty cleared for ${clearing.name}.`); setClearing(null); setReason(''); await reload(); } catch (ex) { warn(ex); } finally { setBusy(false); }
+  };
+  const publish = async (e) => {
     e.preventDefault();
     if (!ver.trim()) return onToast?.('warn', 'Enter a version number.');
-    log('PROCEDURE_PUBLISHED', `procedures/v${ver}`, `Re-agreement triggered for ${users.filter((u) => u.status === 'Active').length} active users · ${summary}`);
-    setProcs((p) => [{ v: ver.trim(), date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), sigs: 0, current: true }, ...p.map((x) => ({ ...x, current: false }))]);
-    onToast?.('ok', `v${ver} published. Active users must re-sign on next session.`);
-    setVer(''); setSummary('');
+    setBusy(true);
+    try { await api.publishProcedure({ version: ver.trim(), summary: summary.trim() }); onToast?.('ok', `v${ver.replace(/^v/i, '')} published. Active users must re-sign on next session.`); setVer(''); setSummary(''); await reload(); } catch (ex) { warn(ex); } finally { setBusy(false); }
   };
 
-  const titles = { analytics: 'System Analytics', users: 'User Management', audit: 'Audit Logs', procedures: 'Procedures' };
-  const subs = { analytics: 'Overview of makerspace usage, projects and members.', users: 'Assign roles and manage the academic-year Keyholder cycle.', audit: 'Immutable record of every privileged action.', procedures: 'Publish a new operational agreement version.' };
+  const titles = { analytics: 'System Analytics', users: 'User Management', audit: 'Audit Logs', procedures: 'Procedures', floor: 'Floor Plan' };
+  const subs = { analytics: 'Overview of makerspace usage, projects and members.', users: 'Assign roles and manage the academic-year Keyholder cycle.', audit: 'Immutable record of every privileged action.', procedures: 'Publish a new operational agreement version.', floor: 'Live 3D model of the workshop. Select a bench to change its status.' };
 
   return (
     <AppShell nav={nav} active={tab} onNav={onNav} onSearch={setQ} roleLabel="Superadmin" title={titles[tab]} subtitle={subs[tab]}>
-      {tab === 'analytics' && (
+      {error && <div role="alert" className="mb-6 rounded-xl border border-bad/30 bg-bad/10 p-4 text-sm text-bad">{error}</div>}
+      {loading && !data && <div className="card-dark flex items-center gap-3 p-5 text-sm text-ink-300"><Loader2 size={16} className="animate-spin" /> Loading…</div>}
+
+      {tab === 'floor' && <FloorExplorer embedded onToast={onToast} />}
+
+      {data && tab === 'analytics' && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatTile icon="Rocket" tone="info" value="127" label="Total Projects" sub="+14% this term" />
-            <StatTile icon="Users" tone="ok" value="86" label="Active Members" sub="+8%" />
-            <StatTile icon="KeyRound" tone="brand" value="245" label="Access Requests" sub="+34%" />
-            <StatTile icon="Activity" tone="info" value="98%" label="Uptime" sub="+1.2%" />
+            <StatTile icon="Rocket" tone="info" value={stats.projects} label="Total Projects" />
+            <StatTile icon="Users" tone="ok" value={stats.members} label="Active Members" />
+            <StatTile icon="KeyRound" tone="brand" value={stats.requests} label="Access Requests" />
+            <StatTile icon="Activity" tone="info" value="98%" label="Uptime" />
           </div>
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <Panel title="Facility Usage (Last 6 Months)" right={<span className="chip-ok chip">+24%</span>}><AreaChart /></Panel>
-            <Panel title="Project Categories"><Bars /></Panel>
+            <Panel title="Facility Usage (Last 6 Months)" right={<span className="chip-mute chip">Sample data</span>}><AreaChart /></Panel>
+            <Panel title="Project Categories" right={<span className="chip-mute chip">Sample data</span>}><Bars /></Panel>
             <Panel title="Most Used Machines">
               <ul className="space-y-4">
                 {MACHINES.map(([n, h]) => (
@@ -179,28 +176,44 @@ export default function AdminPanel({ onToast }) {
         </>
       )}
 
-      {tab === 'users' && (
+      {data && tab === 'users' && (
         <section className="card-dark overflow-hidden">
+          {clearing && (
+            <form onSubmit={clearPenalty} className="flex flex-wrap items-end gap-3 border-b border-bad/30 bg-bad/5 p-4">
+              <div className="min-w-60 flex-1">
+                <label className="mb-1.5 block text-xs font-semibold text-ink-200" htmlFor="pr">Override penalty for {clearing.name} — reason (mandatory)</label>
+                <input id="pr" className="field-dark" placeholder="e.g. Key returned but system was offline" value={reason} onChange={(e) => setReason(e.target.value)} />
+              </div>
+              <button className="btn bg-bad text-white hover:brightness-110" disabled={busy}>Clear penalty</button>
+              <button type="button" className="btn-ghost-dark" onClick={() => { setClearing(null); setReason(''); }}>Cancel</button>
+            </form>
+          )}
           <div className="flex flex-wrap items-center gap-3 border-b border-white/[.07] p-4">
             <div className="flex flex-wrap gap-2">{['All', ...ROLES].map((r) => <button key={r} onClick={() => setRoleF(r)} className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${roleF === r ? 'bg-brand-500 text-white' : 'bg-ink-700 text-ink-200 hover:text-white'}`}>{r}</button>)}</div>
             <div className="ml-auto flex items-center gap-2">
               <button className="btn-ghost-dark btn-sm" onClick={exportUsers}>Export CSV</button>
               {confirmReset ? (
-                <span className="flex items-center gap-2 text-xs text-ink-200">Reset all Keyholders?<button className="btn bg-bad px-3 py-1.5 text-xs text-white" onClick={bulkReset}>Confirm</button><button className="btn-ghost-dark btn-sm" onClick={() => setConfirmReset(false)}>Cancel</button></span>
+                <span className="flex items-center gap-2 text-xs text-ink-200">Reset all Keyholders?<button className="btn bg-bad px-3 py-1.5 text-xs text-white" disabled={busy} onClick={bulkReset}>Confirm</button><button className="btn-ghost-dark btn-sm" onClick={() => setConfirmReset(false)}>Cancel</button></span>
               ) : <button className="btn-outline-brand btn-sm" onClick={() => setConfirmReset(true)}><RefreshCw size={13} /> Bulk year reset</button>}
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="text-[11px] uppercase tracking-wider text-ink-400"><tr><th className="p-4">User</th><th>Student ID</th><th>Role</th><th>Status</th><th>Agreement</th><th className="pr-4 text-right">Change role</th></tr></thead>
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="text-[11px] uppercase tracking-wider text-ink-400"><tr><th className="p-4">User</th><th>Student ID</th><th>Role</th><th>Status</th><th>Agreement</th><th className="pr-4 text-right">Actions</th></tr></thead>
               <tbody className="divide-y divide-white/[.05]">
                 {shownUsers.map((u) => (
-                  <tr key={u.name} className="hover:bg-white/[.02]">
-                    <td className="p-4"><div className="flex items-center gap-3"><Avatar initials={initialsOf(u.name)} size={30} hue={u.name.length * 23} /><span className="font-medium text-white">{u.name}</span></div></td>
-                    <td className="font-mono text-xs text-ink-300">{u.id}</td>
+                  <tr key={u.id} className="hover:bg-white/[.02]">
+                    <td className="p-4"><div className="flex items-center gap-3"><Avatar initials={initialsOf(u.name)} size={30} hue={u.name.length * 23} /><div><div className="font-medium text-white">{u.name}</div><div className="text-[11px] text-ink-400">{u.email}</div></div></div></td>
+                    <td className="font-mono text-xs text-ink-300">{u.sid}</td>
                     <td><span className={`${ROLE_CHIP[u.role]} chip`}>{u.role}</span></td>
-                    <td className="text-ink-300">{u.status}</td><td className="font-mono text-xs text-ink-300">{u.sig}</td>
-                    <td className="pr-4 text-right"><select aria-label={`Role for ${u.name}`} value={u.role} onChange={(e) => changeRole(u.name, e.target.value)} className="rounded-lg border border-white/10 bg-ink-900 px-2 py-1.5 text-xs text-white">{ROLES.map((r) => <option key={r}>{r}</option>)}</select></td>
+                    <td className={u.status === 'Penalty' ? 'font-semibold text-bad' : 'text-ink-300'}>{u.status.replace(/_/g, ' ')}</td>
+                    <td className="font-mono text-xs text-ink-300">{u.sig}</td>
+                    <td className="pr-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {u.status === 'Penalty' && <button className="btn-outline btn-sm !border-bad/40 !text-bad" onClick={() => setClearing(u)}>Clear penalty</button>}
+                        <select aria-label={`Role for ${u.name}`} value={u.role} onChange={(e) => changeRole(u, e.target.value)} disabled={u.id === profile?.id} title={u.id === profile?.id ? 'You cannot change your own role' : undefined} className="rounded-lg border border-white/10 bg-ink-900 px-2 py-1.5 text-xs text-white disabled:opacity-50">{ROLES.map((r) => <option key={r}>{r}</option>)}</select>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -210,13 +223,13 @@ export default function AdminPanel({ onToast }) {
         </section>
       )}
 
-      {tab === 'audit' && (
+      {data && tab === 'audit' && (
         <section className="card-dark overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="text-[11px] uppercase tracking-wider text-ink-400"><tr><th className="p-4">Timestamp</th><th>Event</th><th>Actor</th><th>Entity</th><th className="pr-4">Detail</th></tr></thead>
             <tbody className="divide-y divide-white/[.05]">
-              {shownAudit.map((a, i) => (
-                <tr key={a.ts + i} className="hover:bg-white/[.02]">
+              {shownAudit.map((a) => (
+                <tr key={a.id} className="hover:bg-white/[.02]">
                   <td className="whitespace-nowrap p-4 font-mono text-xs text-ink-300">{a.ts}</td><td><span className={`${EVENT_CHIP(a.event)} chip font-mono`}>{a.event}</span></td>
                   <td className="text-white">{a.actor}</td><td className="font-mono text-xs text-ink-300">{a.entity}</td><td className="pr-4 text-ink-200">{a.detail}</td>
                 </tr>
@@ -227,7 +240,7 @@ export default function AdminPanel({ onToast }) {
         </section>
       )}
 
-      {tab === 'procedures' && (
+      {data && tab === 'procedures' && (
         <form onSubmit={publish} className="card-dark max-w-2xl space-y-5 p-6" noValidate>
           <p className="text-sm text-ink-200">Publishing a new version flags every active user for <b className="text-white">re-agreement</b> before their next session.</p>
           <ul className="space-y-3">
@@ -240,7 +253,7 @@ export default function AdminPanel({ onToast }) {
           </ul>
           <div><label className="mb-1.5 block text-xs font-semibold text-ink-200" htmlFor="v">Version number</label><input id="v" className="field-dark" placeholder="2.5" value={ver} onChange={(e) => setVer(e.target.value)} /></div>
           <div><label className="mb-1.5 block text-xs font-semibold text-ink-200" htmlFor="s">Summary of changes</label><textarea id="s" rows={4} className="field-dark resize-none" placeholder="What changed in this version?" value={summary} onChange={(e) => setSummary(e.target.value)} /></div>
-          <div className="flex justify-end"><button className="btn-primary"><Send size={15} /> Publish &amp; trigger re-agreement</button></div>
+          <div className="flex justify-end"><button className="btn-primary" disabled={busy}>{busy ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Publish &amp; trigger re-agreement</button></div>
           <div className="text-[11px] text-ink-400">Signed in as {profile?.full_name}. This action is written to the audit log.</div>
         </form>
       )}

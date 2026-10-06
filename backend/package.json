@@ -1,0 +1,23 @@
+{
+  "name": "makerspace-backend",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "dotenv": "^18.0.5"
+  },
+  "devDependencies": {
+    "supabase": "^2.119.0"
+  },
+  "scripts": {
+    "db:sync": "node scripts/sync-migrations.mjs",
+    "db:start": "node scripts/sync-migrations.mjs && supabase start",
+    "db:reset": "node scripts/sync-migrations.mjs && supabase db reset",
+    "db:stop": "supabase stop",
+    "db:status": "supabase status",
+    "test:backend": "node scripts/backend_tests.js",
+    "diagnostics": "node scripts/backend_diagnostics.js",
+    "db:seed-users": "node scripts/seed_dev_users.mjs",
+    "test:e2e": "node scripts/sync-migrations.mjs && supabase db reset && node scripts/seed_dev_users.mjs && node scripts/e2e_flow.mjs"
+  }
+}

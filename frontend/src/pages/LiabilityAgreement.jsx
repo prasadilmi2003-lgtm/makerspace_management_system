@@ -177,7 +177,7 @@ export default function LiabilityAgreement({ readOnly = false, onToast }) {
           )}
         </div>
 
-        {readOnly && (
+        {readOnly && !profile && (
           <div className="card mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-between gap-4 p-6">
             <div><div className="font-display font-bold text-white">Ready to start building?</div><div className="text-sm text-ink-300">Join, then sign this agreement digitally to activate access.</div></div>
             <Link to="/join" className="btn-primary">Join Makerspace <ArrowRight size={15} /></Link>

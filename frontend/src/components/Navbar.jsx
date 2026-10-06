@@ -12,7 +12,9 @@ const LINKS = [
   { to: '/guidelines', label: 'Guidelines' },
 ];
 
-const WORKSPACE = { user: ['/dashboard', 'My Requests'], keyholder: ['/keyholder', 'Keyholder Ops'], kh_penalty: ['/keyholder', 'Keyholder Ops'], admin: ['/admin', 'Admin'], pending: ['/onboarding/sign', 'Sign Agreement'] };
+const WORKSPACE = { user: ['/dashboard', 'My Requests'], keyholder: ['/keyholder', 'Keyholder Ops'], kh_penalty: ['/keyholder', 'Keyholder Ops'], admin: ['/keyholder', 'Dashboard'], pending: ['/onboarding/sign', 'Sign Agreement'] };
+
+const ROLE_WORKSPACE = { User: ['/dashboard', 'My Requests'], Alumni: ['/dashboard', 'My Requests'], Keyholder: ['/keyholder', 'Keyholder Ops'], Superadmin: ['/keyholder', 'Dashboard'], Pending: ['/onboarding/sign', 'Sign Agreement'] };
 
 export default function Navbar() {
   const { profile, demoRole, logout } = useAuth();
@@ -31,7 +33,7 @@ export default function Navbar() {
   }, []);
   useEffect(() => setOpen(false), [pathname]);
 
-  const ws = WORKSPACE[demoRole];
+  const ws = WORKSPACE[demoRole] || ROLE_WORKSPACE[profile?.role];
   const tone = dark
     ? solid ? 'bg-ink-950/45 border-white/10 backdrop-blur-xl backdrop-saturate-150 shadow-[0_8px_30px_-12px_rgba(0,0,0,.6)]' : 'bg-white/[.03] border-white/[.06] backdrop-blur-md'
     : solid ? 'bg-white/90 border-ink-100 backdrop-blur-xl' : 'bg-white border-transparent';

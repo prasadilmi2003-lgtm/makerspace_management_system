@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth, MOCK_PROFILES } from '../context/AuthContext';
 import { supabaseConfigured } from '../services/supabase';
 import { WorkshopBackdrop } from '../components/Art';
 
-const HOME = { Pending: '/onboarding/sign', User: '/dashboard', Alumni: '/dashboard', Keyholder: '/keyholder', Superadmin: '/admin' };
+const HOME = { Pending: '/onboarding/sign', User: '/dashboard', Alumni: '/dashboard', Keyholder: '/keyholder', Superadmin: '/keyholder' };
 const QUICK = [['user', 'Student'], ['keyholder', 'Keyholder'], ['admin', 'Superadmin']];
 
 export default function Login({ onToast }) {
-  const { login, setDemoMode } = useAuth();
+  const { login, setDemoMode, profile, live } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +24,7 @@ export default function Login({ onToast }) {
       const { error: err } = await login(email.trim(), password);
       if (err) throw err;
       onToast?.('ok', 'Logged in successfully.');
-      navigate('/dashboard');
+      navigate('/account');
     } catch (err) {
       setError(err.message || 'Could not sign in. Check your email and password.');
     } finally {
@@ -37,6 +37,9 @@ export default function Login({ onToast }) {
     onToast?.('ok', `Previewing as ${MOCK_PROFILES[key].full_name}.`);
     navigate(HOME[MOCK_PROFILES[key].role]);
   };
+
+  // Already signed in (real session): go straight to the page for this role instead of showing the form again.
+  if (live && profile) return <Navigate to="/account" replace />;
 
   return (
     <div className="relative isolate grid min-h-screen place-items-center overflow-hidden px-5 pb-12 pt-24">
