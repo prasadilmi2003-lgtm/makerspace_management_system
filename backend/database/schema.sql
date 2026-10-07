@@ -4,7 +4,7 @@
 -- Makerspace Management System - Supabase PostgreSQL Schema
 
 -- 1. Enable UUID Extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- gen_random_uuid() is built into Postgres 13+, so no uuid-ossp extension is needed (it lives in a schema the hosted migration runner does not search).
 
 -- 2. Custom Types (Enums)
 CREATE TYPE user_role AS ENUM ('Superadmin', 'Keyholder', 'User', 'Alumni', 'Pending');
@@ -27,7 +27,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE procedure_versions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     version_string TEXT NOT NULL UNIQUE,
     document_url TEXT NOT NULL,
     content TEXT,
@@ -36,7 +36,7 @@ CREATE TABLE procedure_versions (
 );
 
 CREATE TABLE liability_signatures (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     procedure_version_id UUID NOT NULL REFERENCES procedure_versions(id) ON DELETE RESTRICT,
     signed_name TEXT NOT NULL,
@@ -46,7 +46,7 @@ CREATE TABLE liability_signatures (
 );
 
 CREATE TABLE requests (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     title TEXT NOT NULL,
     description TEXT,
@@ -60,7 +60,7 @@ CREATE TABLE requests (
 );
 
 CREATE TABLE key_handoffs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     request_id UUID NOT NULL REFERENCES requests(id) ON DELETE RESTRICT,
     keyholder_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     retrieved_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc', now()),
@@ -71,7 +71,7 @@ CREATE TABLE key_handoffs (
 );
 
 CREATE TABLE penalty_events (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     keyholder_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     triggered_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()) NOT NULL,
     cleared_at TIMESTAMP WITH TIME ZONE,
@@ -80,7 +80,7 @@ CREATE TABLE penalty_events (
 );
 
 CREATE TABLE audit_log (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
     event_type TEXT NOT NULL,
     entity_type TEXT NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE audit_log (
 );
 
 CREATE TABLE inventory_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     category TEXT,
     quantity INTEGER NOT NULL DEFAULT 1,
@@ -100,7 +100,7 @@ CREATE TABLE inventory_items (
 );
 
 CREATE TABLE inventory_events (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     item_id UUID NOT NULL REFERENCES inventory_items(id) ON DELETE CASCADE,
     request_id UUID REFERENCES requests(id) ON DELETE SET NULL,
     event_type TEXT NOT NULL,
@@ -108,7 +108,7 @@ CREATE TABLE inventory_events (
 );
 
 CREATE TABLE floor_allocations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     request_id UUID NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     zone TEXT NOT NULL,
@@ -750,7 +750,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- 007_project_repository.sql
 
 CREATE TABLE projects (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     category TEXT NOT NULL,
@@ -789,7 +789,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE penalty_events;
 -- We will create a notifications log table that a webhook could listen to.
 
 CREATE TABLE notification_queue (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     recipient_email TEXT NOT NULL,
     subject TEXT NOT NULL,
     body TEXT NOT NULL,

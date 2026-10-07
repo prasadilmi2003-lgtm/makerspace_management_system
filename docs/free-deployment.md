@@ -118,6 +118,12 @@ select cron.schedule('overdue-check', '*/5 * * * *', $$select public.check_overd
 - In **Supabase > Table Editor** you should see the rows appear.
 - If the live site shows a **"Demo view"** dropdown in the top bar, the two `VITE_` variables were missing when it was built, so it is running on fake data. Add them in Vercel (Settings > Environment Variables) and **redeploy**; the values are read at build time.
 
+## If something goes wrong
+
+- **`function uuid_generate_v4() does not exist` during `npm run db:push`:** fixed. The migrations now use the built-in `gen_random_uuid()`. Pull the latest code and run `npm run db:push` again. A failed push applies nothing, so it is safe to retry.
+- **`Unrecognized flag` on `npm run db:link`:** keep the flag name and replace only the placeholder: `npm run db:link -- --project-ref abcdefghijklmnopqrst`.
+- **Local `npm run db:start` tries to download Docker images after linking:** linking pins your local Docker images to your cloud project's versions. Delete `backend/supabase/.temp/storage-version`, `rest-version`, `gotrue-version` and `postgres-version` (keep `project-ref`) and start again.
+
 ## Good to know (free plans)
 
 - **Supabase pauses a free project after about 7 days without activity.** Open the dashboard and click *Restore* if that happens (data is kept). Any visit that talks to the database counts as activity.

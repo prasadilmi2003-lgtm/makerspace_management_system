@@ -12,7 +12,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE penalty_events;
 -- We will create a notifications log table that a webhook could listen to.
 
 CREATE TABLE notification_queue (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     recipient_email TEXT NOT NULL,
     subject TEXT NOT NULL,
     body TEXT NOT NULL,
