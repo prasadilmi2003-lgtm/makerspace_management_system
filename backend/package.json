@@ -18,6 +18,9 @@
     "test:backend": "node scripts/backend_tests.js",
     "diagnostics": "node scripts/backend_diagnostics.js",
     "db:seed-users": "node scripts/seed_dev_users.mjs",
-    "test:e2e": "node scripts/sync-migrations.mjs && supabase db reset && node scripts/seed_dev_users.mjs && node scripts/e2e_flow.mjs"
+    "test:e2e": "node scripts/sync-migrations.mjs && supabase db reset && node scripts/seed_dev_users.mjs && node scripts/e2e_flow.mjs",
+    "db:login": "supabase login",
+    "db:link": "supabase link",
+    "db:push": "node scripts/sync-migrations.mjs && supabase db push"
   }
 }

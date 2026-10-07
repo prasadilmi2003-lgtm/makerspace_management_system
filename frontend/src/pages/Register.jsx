@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, MailCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabaseConfigured } from '../services/supabase';
 import { WorkshopBackdrop } from '../components/Art';
@@ -21,6 +21,7 @@ export default function Register({ onToast }) {
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
   const [f, setF] = useState({ full_name: '', student_id: '', email: '', phone: '', department: DEPTS[0], academic_year: YEARS[1], skills: '', interests: [], password: '', agree: false });
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
   const toggle = (i) => setF((s) => ({ ...s, interests: s.interests.includes(i) ? s.interests.filter((x) => x !== i) : [...s.interests, i] }));
@@ -48,11 +49,13 @@ export default function Register({ onToast }) {
 
     setBusy(true);
     try {
-      const { error: err } = await register(f.email.trim(), f.password, {
+      const { data, error: err } = await register(f.email.trim(), f.password, {
         full_name: f.full_name.trim(), student_id: f.student_id.trim().toUpperCase(), department: f.department, academic_year: f.academic_year,
       });
       if (err && supabaseConfigured) throw err;
       if (!supabaseConfigured) setDemoMode('pending');
+      // Hosted projects require the email to be confirmed first: no session yet, so ask the student to check their inbox.
+      if (supabaseConfigured && !data?.session) { setEmailSent(true); return; }
       onToast?.('ok', 'Application received! Sign the operational agreement to activate access.');
       navigate('/onboarding/sign');
     } catch (err) {
@@ -85,6 +88,15 @@ export default function Register({ onToast }) {
           </ol>
         </div>
 
+        {emailSent ? (
+          <div className="card animate-rise p-8 text-center" role="status">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-500/15 text-brand-500"><MailCheck size={26} /></span>
+            <h2 className="mt-4 font-display text-xl font-bold text-white">Check your email</h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink-300">We sent a confirmation link to <b className="text-white">{f.email}</b>. Open it to verify your address, then sign the operational agreement to activate your access.</p>
+            <p className="mt-3 text-xs text-ink-400">Nothing arrived? Check your spam folder.</p>
+            <Link to="/login" className="btn-primary mt-6 w-full">Go to login <ArrowRight size={15} /></Link>
+          </div>
+        ) : (
         <form onSubmit={next} className="card animate-rise p-7" noValidate>
           <div className="text-xs text-ink-300">Step {step + 1} of 4</div>
           <h2 className="mt-1 font-display text-xl font-bold text-white">{STEPS[step].title}</h2>
@@ -132,6 +144,7 @@ export default function Register({ onToast }) {
           </div>
           <p className="mt-5 text-center text-xs text-ink-300">Already a member? <Link to="/login" className="font-semibold text-brand-400 hover:underline">Log in</Link></p>
         </form>
+        )}
       </div>
     </div>
   );

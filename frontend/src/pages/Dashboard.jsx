@@ -5,8 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useApi, useQuery } from '../context/ApiContext';
 import AppShell, { StatTile } from '../components/AppShell';
 import { Empty, Icon } from '../components/ui';
-import IsoFloor, { STATE_COLOR } from '../components/IsoFloor';
-import { DURATIONS, STAGES, STAGE_CHIP, STAGE_LABEL, ZONES, ZONE_STATUS_LABEL } from '../data/mock';
+import { DURATIONS, STAGES, STAGE_CHIP, STAGE_LABEL, ZONES } from '../data/mock';
 import { benchesOf, BENCH_STATUS_LABEL, initialBenchStatus } from '../data/floor';
 import FloorPicker from '../components/FloorPicker';
 
@@ -115,7 +114,7 @@ export default function Dashboard({ onToast }) {
             <StatTile icon="Clock" tone="brand" value={fmtHours(stats.mins)} label="Bench hours logged" />
           </div>
 
-          <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+          <div className="mt-6">
             <section aria-label="My requests" className="space-y-4">
               <h2 className="font-display text-lg font-bold text-white">My Requests</h2>
               {loading && <div className="card-dark flex items-center gap-3 p-5 text-sm text-ink-300"><Loader2 size={16} className="animate-spin" /> Loading your requests…</div>}
@@ -144,14 +143,6 @@ export default function Dashboard({ onToast }) {
                   )}
                 </article>
               ))}
-            </section>
-
-            <section className="card-dark h-fit p-5" aria-label="Live floor">
-              <div className="flex items-center justify-between"><h2 className="font-display text-lg font-bold text-white">Live Floor</h2><button onClick={() => setTab('new')} className="text-xs font-semibold text-brand-400 hover:underline">Book a bench →</button></div>
-              <IsoFloor dark zones={ZONES} labels={false} />
-              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                {ZONES.map((z) => <div key={z.id} className="flex items-center justify-between rounded-lg bg-ink-900 px-3 py-2"><span className="flex items-center gap-2 text-ink-200"><span className="h-2 w-2 rounded-full" style={{ background: z.color }} />{z.letter} · {z.short}</span><span className="text-[10px] font-bold uppercase" style={{ color: STATE_COLOR[z.status] }}>{ZONE_STATUS_LABEL[z.status]}</span></div>)}
-              </div>
             </section>
           </div>
         </>

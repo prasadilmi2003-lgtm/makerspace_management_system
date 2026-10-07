@@ -28,7 +28,8 @@ The repository contains comprehensive documentation for developers:
 - [Backend Security & RLS](docs/backend-security.md)
 - [Frontend API Integration](docs/frontend-integration.md)
 - [Realtime Subscriptions](docs/realtime.md)
-- [Deployment Guide](docs/deployment.md)
+- [Deploy for free (Vercel + Supabase)](docs/free-deployment.md): step-by-step for a public site
+- [Deployment Guide](docs/deployment.md): CLI details, edge functions, webhooks
 - [Local Development Guide](docs/local-development.md)
 
 ## Quick Start (Local Full-Stack)

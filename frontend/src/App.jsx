@@ -24,15 +24,21 @@ const ScrollTop = () => {
   return null;
 };
 
-/** Marketing / onboarding pages: top navbar + footer. */
-const PublicLayout = () => (
-  <div className="relative isolate flex min-h-screen flex-col">
-    <AmbientBackdrop />
-    <Navbar />
-    <main className="flex-1"><Outlet /></main>
-    <Footer />
-  </div>
-);
+/** Marketing / onboarding pages: top navbar + footer. The page scrollbar is hidden here only. */
+const PublicLayout = () => {
+  useEffect(() => {
+    document.documentElement.classList.add('hide-page-scrollbar');
+    return () => document.documentElement.classList.remove('hide-page-scrollbar');
+  }, []);
+  return (
+    <div className="relative isolate flex min-h-screen flex-col">
+      <AmbientBackdrop />
+      <Navbar />
+      <main className="flex-1"><Outlet /></main>
+      <Footer />
+    </div>
+  );
+};
 
 const AppContent = () => {
   const [toast, setToast] = useState({ show: false, icon: 'ok', msg: '' });

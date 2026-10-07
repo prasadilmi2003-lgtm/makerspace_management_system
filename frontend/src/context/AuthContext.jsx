@@ -139,7 +139,8 @@ export const AuthProvider = ({ children }) => {
     return supabase.auth.signUp({
       email,
       password,
-      options: { data: metadata },
+      // After the confirmation link, the user lands on /account which routes them by role (new students go to the agreement).
+      options: { data: metadata, emailRedirectTo: `${window.location.origin}/account` },
     });
   };
 
