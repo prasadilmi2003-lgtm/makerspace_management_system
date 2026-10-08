@@ -49,7 +49,9 @@ export default function Dashboard({ onToast }) {
   const preZone = ZONES.find((z) => z.id === params.get('zone'));
   const preBench = /^[A-H][1-4]$/.test(params.get('bench') || '') ? params.get('bench') : '';
 
-  const [tab, setTab] = useState(preZone ? 'new' : 'overview');
+  // Alumni have read-only access (the database refuses new requests from them), so hide everything that creates one.
+  const canRequest = profile?.role !== 'Alumni';
+  const [tab, setTab] = useState(preZone && canRequest ? 'new' : 'overview');
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -100,13 +102,14 @@ export default function Dashboard({ onToast }) {
   const blocked = profile?.status === 'Suspended';
 
   return (
-    <AppShell nav={NAV} active={tab} onNav={onNav} roleLabel={profile?.role} onSearch={setQ}
+    <AppShell nav={canRequest ? NAV : NAV.filter((n) => n.id !== 'new')} active={tab} onNav={onNav} roleLabel={profile?.role} onSearch={setQ}
       title={tab === 'new' ? 'New Access Request' : `Welcome back, ${profile?.full_name?.split(' ')[0] || 'Maker'}`}
       subtitle={tab === 'new' ? 'Pick a zone or bench on the floor, then describe your session. A Keyholder claims it and meets you there.' : `${profile?.student_id} · track your sessions and request new bench time.`}
-      actions={tab === 'overview' && <button className="btn-primary" onClick={() => setTab('new')}><Plus size={16} /> New Request</button>}
+      actions={tab === 'overview' && canRequest && <button className="btn-primary" onClick={() => setTab('new')}><Plus size={16} /> New Request</button>}
     >
       {tab === 'overview' && (
         <>
+          {!canRequest && <div className="mb-6 rounded-xl border border-white/10 bg-ink-900/70 p-4 text-sm text-ink-200">Alumni accounts have read-only access: you can browse the project archive and your past sessions, but new requests are disabled.</div>}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatTile icon="Zap" tone="ok" value={stats.active} label="Active session" />
             <StatTile icon="Hourglass" tone="warn" value={stats.pending} label="Awaiting Keyholder" />

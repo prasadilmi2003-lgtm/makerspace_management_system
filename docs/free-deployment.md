@@ -83,21 +83,34 @@ Whenever you push to GitHub, Vercel redeploys the site automatically.
 
 ---
 
-## 5. Create the first administrator
+## 5. Create the administrator account
 
 Live databases start with **no accounts** (the demo accounts exist only on your own computer).
 
-1. Open your live website, click **Join Makerspace**, register with your university email, confirm the email, and sign the agreement.
-2. In **Supabase > SQL Editor** run (put your email in):
+### Fastest: one ready-made admin account
+
+1. Open `backend/database/production_accounts.sql`.
+2. Change the **password** (and the email, name and ID if you like) in the lines marked `<== EDIT`.
+3. Copy the whole file into **Supabase > SQL Editor** and click **Run**. You should see a table with one row: your email, `Superadmin`, `Active`.
+4. Log in on your website with that email and password. The account is already confirmed and has already signed the agreement, so no email is needed. You land on the Operations Dashboard, and the sidebar has an **Admin Panel** link.
+
+The script refuses to run until you replace the placeholder password, and running it twice does nothing the second time.
+Afterwards, clear the SQL Editor so your password is not left in its history.
+
+### Or: make yourself the admin from a normal sign-up
+
+1. Open your live website, click **Join Makerspace**, register, confirm the email, and sign the agreement.
+2. In **SQL Editor** run (put your email in):
 
 ```sql
-update public.users
-set role = 'Superadmin', status = 'Active'
-where email = 'YOUR_EMAIL@eng.ruh.ac.lk';
+update public.users set role = 'Superadmin', status = 'Active' where email = 'YOUR_EMAIL';
 ```
 
-3. Log out and in again. You now land on the Operations Dashboard with the **Admin Panel** link in the sidebar.
-4. From the Admin Panel you can promote the year's Keyholders (User Management > role dropdown).
+3. Log out and in again.
+
+### Everyone else
+
+Keyholders, students and alumni just register on the website. Then promote people in **Admin Panel > User Management** (role dropdown).
 
 ---
 
