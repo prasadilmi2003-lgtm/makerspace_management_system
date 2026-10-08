@@ -33,6 +33,68 @@ const OfficerForm = ({ label, value, onChange, onSubmit, cta, busy, tone = 'prim
   </form>
 );
 
+const CHECKLIST_ITEMS = [
+  { id: 'c1', type: 'open', label: 'Unlock main entrance and disable alarm' },
+  { id: 'c2', type: 'open', label: 'Turn on main lights and check HVAC' },
+  { id: 'c3', type: 'open', label: 'Verify 3D printer and laser cutter emergency stops are disengaged' },
+  { id: 'c4', type: 'open', label: 'Check inventory log for pending items from previous day' },
+  { id: 'c5', type: 'close', label: 'Ensure all equipment is powered off and unplugged' },
+  { id: 'c6', type: 'close', label: 'Verify all workbenches are clean and clear of debris' },
+  { id: 'c7', type: 'close', label: 'Secure hazardous materials in safety cabinets' },
+  { id: 'c8', type: 'close', label: 'Turn off lights, enable alarm, and lock main entrance' },
+];
+
+function SpaceChecklist({ onToast }) {
+  const [checked, setChecked] = useState(new Set());
+  
+  const toggle = (id) => {
+    const next = new Set(checked);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setChecked(next);
+  };
+
+  const submit = (type) => {
+    const items = CHECKLIST_ITEMS.filter((i) => i.type === type);
+    if (items.some((i) => !checked.has(i.id))) {
+      onToast('warn', 'Please complete all tasks in the checklist.');
+      return;
+    }
+    onToast('ok', `${type === 'open' ? 'Opening' : 'Closing'} checklist logged successfully.`);
+    setChecked(new Set([...checked].filter((id) => !items.find((i) => i.id === id))));
+  };
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <section className="card-dark p-6">
+        <h2 className="mb-4 font-display text-lg font-bold text-white flex items-center gap-2"><Icon name="Sun" size={18} className="text-brand-400" /> Opening Procedures</h2>
+        <div className="space-y-3">
+          {CHECKLIST_ITEMS.filter(i => i.type === 'open').map((i) => (
+            <label key={i.id} className="flex items-start gap-3 rounded-lg border border-white/5 bg-white/[.02] p-3 hover:bg-white/[.04] cursor-pointer transition">
+              <input type="checkbox" className="mt-0.5 rounded border-ink-600 bg-ink-800 text-brand-500 focus:ring-brand-500/50" checked={checked.has(i.id)} onChange={() => toggle(i.id)} />
+              <span className={`text-sm ${checked.has(i.id) ? 'text-ink-400 line-through' : 'text-ink-100'}`}>{i.label}</span>
+            </label>
+          ))}
+        </div>
+        <button onClick={() => submit('open')} className="btn-primary mt-5 w-full">Log Space as Opened</button>
+      </section>
+      
+      <section className="card-dark p-6">
+        <h2 className="mb-4 font-display text-lg font-bold text-white flex items-center gap-2"><Icon name="Moon" size={18} className="text-brand-400" /> Closing Procedures</h2>
+        <div className="space-y-3">
+          {CHECKLIST_ITEMS.filter(i => i.type === 'close').map((i) => (
+            <label key={i.id} className="flex items-start gap-3 rounded-lg border border-white/5 bg-white/[.02] p-3 hover:bg-white/[.04] cursor-pointer transition">
+              <input type="checkbox" className="mt-0.5 rounded border-ink-600 bg-ink-800 text-brand-500 focus:ring-brand-500/50" checked={checked.has(i.id)} onChange={() => toggle(i.id)} />
+              <span className={`text-sm ${checked.has(i.id) ? 'text-ink-400 line-through' : 'text-ink-100'}`}>{i.label}</span>
+            </label>
+          ))}
+        </div>
+        <button onClick={() => submit('close')} className="btn-primary mt-5 w-full bg-ink-700 hover:bg-ink-600">Log Space as Closed</button>
+      </section>
+    </div>
+  );
+}
+
+
 export default function KeyholderDashboard({ onToast }) {
   const { profile, refreshProfile } = useAuth();
   const api = useApi();
@@ -106,12 +168,13 @@ export default function KeyholderDashboard({ onToast }) {
     { id: 'requests', label: 'Access Requests', icon: 'ClipboardList', badge: pending.length || null },
     { id: 'session', label: 'Active Session', icon: 'KeyRound', badge: sessions.length || null },
     { id: 'penalty', label: 'Overdue', icon: 'OctagonAlert', badge: overdue.length || null },
+    { id: 'checklist', label: 'Space Checklist', icon: 'ListChecks' },
     { id: 'floor', label: 'Workbenches', icon: 'Layers' },
     { id: 'inventory', label: 'Inventory', icon: 'Package' },
     { id: '/projects', label: 'Projects', icon: 'FolderKanban' },
     ...(isAdmin ? [{ id: '/admin', label: 'Admin Panel', icon: 'ShieldAlert', section: 'Account' }] : []),
   ];
-  const titles = { overview: 'Operations Dashboard', requests: 'Access Requests', session: 'Active Session', penalty: 'Overdue Keys', floor: 'Workbenches', inventory: 'Inventory' };
+  const titles = { overview: 'Operations Dashboard', requests: 'Access Requests', session: 'Active Session', penalty: 'Overdue Keys', floor: 'Workbenches', inventory: 'Inventory', checklist: 'Opening/Closing Checklist' };
 
   const Loading = () => <div className="card-dark flex items-center gap-3 p-5 text-sm text-ink-300"><Loader2 size={16} className="animate-spin" /> Loading…</div>;
 
@@ -164,7 +227,7 @@ export default function KeyholderDashboard({ onToast }) {
               <section className="card-dark p-5">
                 <h2 className="mb-3 font-display text-lg font-bold text-white">Quick Actions</h2>
                 <div className="grid grid-cols-2 gap-2.5">
-                  {[['Claim Request', 'KeyRound', () => setTab('requests')], ['Floor Plan', 'Map', () => setTab('floor')], ['Report Issue', 'TriangleAlert', () => setTab('inventory')], ['Active Session', 'Timer', () => setTab('session')]].map(([l, ic, fn]) => (
+                  {[['Claim Request', 'KeyRound', () => setTab('requests')], ['Space Checklist', 'ListChecks', () => setTab('checklist')], ['Report Issue', 'TriangleAlert', () => setTab('inventory')], ['Active Session', 'Timer', () => setTab('session')]].map(([l, ic, fn]) => (
                     <button key={l} onClick={fn} className="flex items-center gap-2 rounded-lg border border-white/10 bg-ink-900 px-3 py-2.5 text-xs font-semibold text-ink-100 transition hover:border-brand-500/60 hover:text-white"><Icon name={ic} size={15} className="text-brand-500" />{l}</button>
                   ))}
                 </div>
@@ -173,6 +236,8 @@ export default function KeyholderDashboard({ onToast }) {
           </div>
         </>
       )}
+
+      {board && tab === 'checklist' && <SpaceChecklist onToast={onToast} />}
 
       {board && tab === 'requests' && (
         <div className="space-y-4">

@@ -35,3 +35,5 @@ backend/supabase/seed.sql
 backend/supabase/.temp/
 backend/supabase/.branches/
 backend/supabase/.env.local
+.vercel
+.env*
