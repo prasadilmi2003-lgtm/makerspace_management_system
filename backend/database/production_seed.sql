@@ -43,4 +43,4 @@ Access is managed exclusively through the Makerspace Management System. You are 
 ## 10. Agreement Acknowledgement
 
 By signing below, you confirm that you have scrolled through and read the entirety of these Operational Procedures (Version 2.4, June 2026), that you understand all terms, and that you voluntarily agree to be bound by them. You acknowledge that a digital record of this agreement, including your name, student ID, the timestamp of signature, and your IP address, will be stored permanently and may be produced as evidence in any disciplinary or legal proceedings.', true)
-ON CONFLICT (version_string) DO NOTHING;
+ON CONFLICT (version_string) DO UPDATE SET active = true;
