@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Check, Loader2, MailCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabaseConfigured } from '../services/supabase';
 import { WorkshopBackdrop } from '../components/Art';
+import PasswordField from '../components/PasswordField';
 
 const STEPS = [
   { title: 'Personal Information', sub: 'Basic details about you' },
@@ -22,8 +23,12 @@ export default function Register({ onToast }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [emailSent, setEmailSent] = useState(false);
-  const [f, setF] = useState({ full_name: '', student_id: '', email: '', phone: '', department: DEPTS[0], academic_year: YEARS[1], skills: '', interests: [], password: '', agree: false });
-  const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+  const [f, setF] = useState({ full_name: '', student_id: '', email: '', phone: '', department: DEPTS[0], academic_year: YEARS[1], skills: '', interests: [], password: '', confirm: '', agree: false });
+  const [pwErrors, setPwErrors] = useState({});
+  const set = (k) => (e) => {
+    setF((s) => ({ ...s, [k]: e.target.value }));
+    if (k === 'password' || k === 'confirm') setPwErrors((p) => ({ ...p, [k]: '' }));
+  };
   const toggle = (i) => setF((s) => ({ ...s, interests: s.interests.includes(i) ? s.interests.filter((x) => x !== i) : [...s.interests, i] }));
 
   const problem = () => {
@@ -33,15 +38,26 @@ export default function Register({ onToast }) {
       if (!/^\S+@\S+\.\S+$/.test(f.email)) return 'Enter a valid university email address.';
     }
     if (step === 2 && !f.interests.length) return 'Pick at least one area of interest.';
-    if (step === 3) {
-      if (f.password.length < 8) return 'Password must be at least 8 characters.';
-      if (!f.agree) return 'Please confirm the details are correct.';
-    }
+    if (step === 3 && !f.agree) return 'Please confirm the details are correct.';
     return '';
+  };
+
+  const passwordProblems = () => {
+    const errs = {};
+    if (!f.password) errs.password = 'Please create a password.';
+    else if (f.password.length < 8) errs.password = 'Password must be at least 8 characters.';
+    if (!f.confirm) errs.confirm = 'Please confirm your password.';
+    else if (f.confirm !== f.password) errs.confirm = 'Passwords do not match.';
+    return errs;
   };
 
   const next = async (e) => {
     e.preventDefault();
+    if (step === 3) {
+      const errs = passwordProblems();
+      setPwErrors(errs);
+      if (errs.password || errs.confirm) return setError('');
+    }
     const p = problem();
     if (p) return setError(p);
     setError('');
@@ -128,7 +144,8 @@ export default function Register({ onToast }) {
                   <div key={k} className="flex justify-between gap-4 py-1"><dt className="text-ink-300">{k}</dt><dd className="text-right font-medium text-ink-100">{v}</dd></div>
                 ))}
               </dl>
-              <div><label className="field-label" htmlFor="rw">Create a password *</label><input id="rw" type="password" className="field" placeholder="At least 8 characters" value={f.password} onChange={set('password')} autoComplete="new-password" /></div>
+              <PasswordField id="rw" label="Create a password *" placeholder="At least 8 characters" value={f.password} onChange={set('password')} error={pwErrors.password} autoComplete="new-password" />
+              <PasswordField id="rc" label="Confirm password *" placeholder="Re-enter your password" value={f.confirm} onChange={set('confirm')} error={pwErrors.confirm} autoComplete="new-password" />
               <label className="flex cursor-pointer items-start gap-3 text-xs text-ink-200"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-500" checked={f.agree} onChange={(e) => setF((s) => ({ ...s, agree: e.target.checked }))} /> I confirm these details are correct and I am a University of Ruhuna student.</label>
             </>)}
           </div>
