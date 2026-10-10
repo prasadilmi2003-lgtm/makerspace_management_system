@@ -64,7 +64,7 @@ export default function Navbar() {
         <div className="hidden items-center gap-3 lg:flex">
           <DemoSwitcher dark={dark} />
           {ws && (
-            <Link to={ws[0]} className={`text-[13px] font-semibold ${dark ? 'text-white' : 'text-ink-800'} hover:text-brand-500`}>{ws[1]}</Link>
+            <Link to={ws[0]} className="btn-primary btn-sm !px-4">{ws[1]}</Link>
           )}
           {profile ? (
             <button
@@ -100,10 +100,10 @@ export default function Navbar() {
             {LINKS.map((l) => (
               <NavLink key={l.to} to={l.to} end={l.end} className={({ isActive }) => `border-b py-3 text-sm font-semibold ${dark ? 'border-white/5' : 'border-ink-50'} ${isActive ? 'text-brand-500' : dark ? 'text-white' : 'text-ink-800'}`}>{l.label}</NavLink>
             ))}
-            {ws && <Link to={ws[0]} className={`border-b py-3 text-sm font-semibold ${dark ? 'border-white/5 text-white' : 'border-ink-50 text-ink-800'}`}>{ws[1]}</Link>}
           </div>
           <div className="mt-4 flex flex-col gap-3">
             <DemoSwitcher dark={dark} />
+            {ws && <Link to={ws[0]} className="btn-primary">{ws[1]}</Link>}
             {!profile && <Link to="/join" className="btn-primary">Join Makerspace <ArrowRight size={14} /></Link>}
             {!profile && <Link to="/login" className={dark ? 'btn-ghost-dark' : 'btn-outline'}>Log in</Link>}
           </div>
